@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise GIS & Operations Portal | Sky Nine Digital</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
+                <h1 class="text-xl font-bold tracking-wide">Sky Nine <span class="text-emerald-400">Operations Hub</span></h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-xs bg-slate-900 text-emerald-400 px-3 py-1 rounded-full border border-slate-800">System Online</span>
+                <span class="text-xs text-slate-400">Windhoek Node</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Left Column: Controls & Live Feed (1 Col) -->
+        <div class="lg:col-span-1 space-y-6">
+            
+            <!-- Quick Filters Card -->
+            <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Asset Filters</h3>
+                <div class="space-y-2">
+                    <button onclick="filterAssets('all')" class="w-full text-left px-3 py-2 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-emerald-400 font-medium transition border border-slate-800">Show All Assets</button>
+                    <button onclick="filterAssets('Active')" class="w-full text-left px-3 py-2 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 transition border border-slate-800">Active Hubs Only</button>
+                    <button onclick="filterAssets('Transit')" class="w-full text-left px-3 py-2 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 transition border border-slate-800">In Transit Units</button>
+                </div>
+            </div>
+
+            <!-- Live Activity Log Card -->
+            <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Live Activity Feed</h3>
+                <div class="space-y-3 text-xs text-slate-400 max-h-[220px] overflow-y-auto pr-1">
+                    <div class="border-l-2 border-emerald-500 pl-3 py-1">
+                        <p class="font-medium text-slate-200">Central Depot checked in</p>
+                        <span class="text-[10px] text-slate-500">2 mins ago</span>
+                    </div>
+                    <div class="border-l-2 border-blue-500 pl-3 py-1">
+                        <p class="font-medium text-slate-200">Northern Fleet Unit #4 departed</p>
+                        <span class="text-[10px] text-slate-500">14 mins ago</span>
+                    </div>
+                    <div class="border-l-2 border-amber-500 pl-3 py-1">
+                        <p class="font-medium text-slate-200">Southern Warehouse loading initiated</p>
+                        <span class="text-[10px] text-slate-500">45 mins ago</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lead Form / Client Call-to-Action -->
+            <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Deploy For Your Business</h3>
+                <p class="text-xs text-slate-400 mb-3">Want a custom tracking portal like this for your fleet or assets?</p>
+                <form class="space-y-3">
+                    <input type="email" placeholder="Enter work email" class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    <button type="button" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold py-2 rounded-lg text-xs transition">Inquire Now</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Interactive Map & Search (3 Cols) -->
+        <div class="lg:col-span-3 bg-slate-950 p-5 rounded-xl border border-slate-800 flex flex-col">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                <h3 class="font-semibold text-slate-200 text-sm">Spatial Telemetry & Location Grid</h3>
+                <!-- Search Box -->
+                <div class="w-full sm:w-64">
+                    <input type="text" id="assetSearch" placeholder="Search assets..." onkeyup="searchAssets()" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+            <!-- Map element -->
+            <div id="map" class="w-full h-[520px] rounded-lg bg-slate-900 border border-slate-800 z-0"></div>
+        </div>
+
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Map & Advanced Logic Script -->
+    <script>
+        // Initialize map centered on Windhoek
+        const map = L.map('map').setView([-22.5609, 17.0658], 13);
+
+        // Add standard open-source tile layer (100% free, no API key needed)
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Asset dataset
+        const assets = [
+            { id: 1, lat: -22.5609, lng: 17.0658, title: "Central Depot", status: "Active", type: "Hub" },
+            { id: 2, lat: -22.5350, lng: 17.0850, title: "Northern Fleet Unit #4", status: "Transit", type: "Vehicle" },
+            { id: 3, lat: -22.5800, lng: 17.0400, title: "Southern Warehouse", status: "Transit", type: "Storage" }
+        ];
+
+        let markers = [];
+
+        // Render markers function
+        function renderMarkers(data) {
+            // Clear existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            data.forEach(asset => {
+                const marker = L.marker([asset.lat, asset.lng]).addTo(map);
+                marker.bindPopup(`
+                    <div class="p-1 text-slate-800">
+                        <strong class="text-sm font-bold">${asset.title}</strong><br>
+                        <span class="text-xs text-slate-600">Category: ${asset.type}</span><br>
+                        <span class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">${asset.status}</span>
+                    </div>
+                `);
+                markers.push({ marker, asset });
+            });
+        }
+
+        // Initial render
+        renderMarkers(assets);
+
+        // Filter function
+        function filterAssets(status) {
+            if (status === 'all') {
+                renderMarkers(assets);
+            } else {
+                const filtered = assets.filter(a => a.status === status);
+                renderMarkers(filtered);
+            }
+        }
+
+        // Search function
+        function searchAssets() {
+            const query = document.getElementById('assetSearch').value.toLowerCase();
+            const filtered = assets.filter(a => a.title.toLowerCase().includes(query));
+            renderMarkers(filtered);
+        }
+    </script>
+</body>
+</html>
